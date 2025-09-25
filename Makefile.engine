@@ -1,0 +1,73 @@
+CC = clang
+STD = -std=c99
+ENGINE_NAME = junk
+
+# Detect OS
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+    DLEXT = so
+    DLEXTFLAG = -shared
+	PLATFORM_LIBS = -lm -ldl -lrt -lX11
+	VIS_FLAGS = -fvisibility=hidden
+	EXPORT = -DJNK_EXPORT
+else ifeq ($(OS),Windows_NT)
+    DLEXT = dll
+    DLEXTFLAG = -shared
+	PLATFORM_LIBS = -lm -luser32 -lgdi32 -lkernel32
+	VIS_FLAGS =
+	EXPORT = -DJNK_EXPORT
+else
+    $(error Unsupported OS)
+endif
+
+# Build mode
+MODE ?= debug
+DEBUG_FLAGS = -g -MD -fdeclspec -fPIC
+RELEASE_FLAGS = -O3 -fdeclspec -fPIC
+
+ifeq ($(MODE),debug)
+	DEFINES += -DJNK_DEBUG -DJNK_ASSERT_ENABLE
+	COMMONS = $(DEBUG_FLAGS)
+else ifeq ($(MODE),release)
+	DEFINES += -DJNK_RELEASE
+	COMMONS = $(RELEASE_FLAGS)
+else
+	$(error Unknown build mode: $(MODE))
+endif
+
+# Add all subdirs in engine/src to include path (recursive)
+WARNINGS = -Wall -Wextra -Wno-c2x-extensions -Wpointer-arith -Wcast-align -Wconversion \
+		   -Wstrict-aliasing -Wno-gnu-zero-variadic-macro-arguments
+INCLUDES = $(shell find engine/src -type d -exec echo -I{} \;) -Iengine/include -I$(VULKAN_SDK)/include
+
+# Final compiler flags
+CFLAGS = $(STD) $(WARNINGS) $(INCLUDES) $(COMMONS) $(VIS_FLAGS) $(EXPORT) $(DEFINES)
+
+# Source and object files
+SRC = $(shell find engine/src -name '*.c')
+#OBJ = $(patsubst engine/src/%,obj/%,$(SRC:.c=.o))
+#OBJ = $(patsubst %.c,obj/%.o,$(SRC))
+OBJ = $(SRC:%.c=obj/%.o)
+DEP = $(OBJ:.o=.d)
+
+TARGET = bin/lib$(ENGINE_NAME).$(DLEXT)
+
+# Build dynamic library
+$(TARGET): $(OBJ)
+	@mkdir -p $(dir $@)
+	@echo "Linking $@"
+	@$(CC) $(DLEXTFLAG) -o $@ $(OBJ) $(PLATFORM_LIBS)
+
+# Rule for building object files in obj/ folder
+obj/%.o: %.c
+	@mkdir -p $(dir $@)
+	@echo "Compiling $<..."
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+# Clean
+clean:
+	@echo "Clean engine..."
+	@rm -rf obj bin
+
+# Include dependency files
+-include $(DEP)

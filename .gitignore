@@ -1,0 +1,7 @@
+bin/
+obj/
+.cache/
+trail/
+*.spv
+compile_commands.json
+

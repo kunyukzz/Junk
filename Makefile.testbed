@@ -1,0 +1,42 @@
+CC = clang
+STD = -std=c99
+ENGINE_NAME = junk
+
+# Detect OS
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+    ENGINE_LIB = lib$(ENGINE_NAME).so
+else ifeq ($(OS),Windows_NT)
+    ENGINE_LIB = $(ENGINE_NAME).dll
+else
+    $(error Unsupported OS)
+endif
+
+# Paths
+ENGINE_BIN  = bin
+ENGINE_INC  = engine/include
+TARGET = $(ENGINE_BIN)/testbed
+
+# Sources
+SRC = $(wildcard testbed/src/*.c)
+OBJ = $(SRC:%.c=obj/%.o)
+DEP = $(OBJ:.o=.d)
+
+# Flags
+CFLAGS = $(STD) -Wall -Wextra -I$(ENGINE_INC)
+
+# Build testbed executable
+$(TARGET): $(OBJ) $(ENGINE_BIN)/$(ENGINE_LIB)
+	@echo "Linking $@"
+	@$(CC) -o $@ $(OBJ) $(ENGINE_BIN)/$(ENGINE_LIB)
+
+# Compile testbed sources
+obj/%.o: %.c
+	@mkdir -p $(dir $@)
+	@echo "Compiling $<..."
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+# Clean
+clean:
+	@echo "Clean testbed..."
+	@rm -f $(OBJ) $(TARGET)
