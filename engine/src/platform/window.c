@@ -4,11 +4,11 @@
 #include "event/input.h"
 #include "event/event.h"
 
+static window_state_t *g_win = JNK_NULL;
+
 #if JNK_LINUX
 #    include <X11/Xlib.h>
 #    include <X11/XKBlib.h>
-
-static window_state_t *g_win = JNK_NULL;
 
 b8 window_system_init(u64 *memory_req, void *state) {
     if (memory_req) *memory_req = sizeof(window_state_t);
@@ -59,7 +59,7 @@ b8 window_system_init(u64 *memory_req, void *state) {
     g_win->window.width = config->width;
     g_win->window.height = config->height;
 
-    jnk_log_info(CH_CORE, "Window system initialized.");
+    jnk_log_info(CH_CORE, "Window system initialized (X11)");
     return true;
 }
 
@@ -153,10 +153,172 @@ void window_system_kill(void *state) {
         XCloseDisplay(dpy);
         g_win->window.dpy = JNK_NULL;
     }
-    jnk_log_info(CH_CORE, "Window system kill.");
+    jnk_log_info(CH_CORE, "Window system kill (X11)");
 }
 
 #elif JNK_WINDOWS
+#    include <windows.h>
+
+static LRESULT CALLBACK jnk_win32_window_proc(HWND hwnd, UINT msg,
+                                              WPARAM wparam, LPARAM lparam) {
+    switch (msg) {
+        case WM_KEYDOWN:
+        case WM_KEYUP: {
+            b8 pressed = (msg == WM_KEYDOWN);
+            jnk_keys_t key = keycode_translate_win32((u32)wparam);
+            input_process_key(key, pressed);
+            return 0;
+        }
+
+        case WM_LBUTTONDOWN:
+        case WM_LBUTTONUP: {
+            b8 pressed = (msg == WM_LBUTTONDOWN);
+            input_process_button(JNK_MB_LEFT, pressed);
+            return 0;
+        }
+
+        case WM_RBUTTONDOWN:
+        case WM_RBUTTONUP: {
+            b8 pressed = (msg == WM_RBUTTONDOWN);
+            input_process_button(JNK_MB_RIGHT, pressed);
+            return 0;
+        }
+
+        case WM_MBUTTONDOWN:
+        case WM_MBUTTONUP: {
+            b8 pressed = (msg == WM_MBUTTONDOWN);
+            input_process_button(JNK_MB_MIDDLE, pressed);
+            return 0;
+        }
+
+        case WM_MOUSEMOVE: {
+            i16 x = GET_X_LPARAM(lparam);
+            i16 y = GET_Y_LPARAM(lparam);
+            input_process_mouse_move(x, y);
+            return 0;
+        }
+
+        case WM_SIZE: {
+            if (g_win->config->resizable) {
+                jnk_event_t e;
+                e.data.resize.width = (u16)LOWORD(lparam);
+                e.data.resize.height = (u16)HIWORD(lparam);
+                event_push(JNK_RESIZE, &e, JNK_NULL);
+            }
+            return 0;
+        }
+
+        case WM_ACTIVATE: {
+            if (wparam == WA_INACTIVE) {
+                jnk_event_t e;
+                event_push(JNK_SUSPEND, &e, JNK_NULL);
+            } else {
+                jnk_event_t e;
+                event_push(JNK_RESUME, &e, JNK_NULL);
+            }
+            return 0;
+        }
+
+        case WM_CLOSE: {
+            jnk_event_t e;
+            event_push(JNK_QUIT, &e, JNK_NULL);
+            return 0;
+        }
+
+        case WM_DESTROY: {
+            PostQuitMessage(0);
+            return 0;
+        }
+
+        default: return DefWindowProcA(hwnd, msg, wparam, lparam);
+    }
+}
+
+b8 window_system_init(u64 *memory_req, void *state) {
+    if (memory_req) *memory_req = sizeof(window_state_t);
+    if (!state) return true;
+    g_win = (window_state_t *)state;
+
+    const jnk_window_config_t *config = g_win->config;
+    if (!config) {
+        jnk_log_fatal(CH_CORE, "window config was not setup!");
+        return false;
+    }
+
+    HINSTANCE hInstance = GetModuleHandleA(JNK_NULL);
+
+    WNDCLASSEXA wc = {0};
+    wc.cbSize = sizeof(WNDCLASSEXA);
+    wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+    wc.lpfnWndProc = jnk_win32_window_proc;
+    wc.hInstance = hInstance;
+    wc.hCursor = LoadCursorA(JNK_NULL, IDC_ARROW);
+    wc.hbrBackground = (HBRUSH)COLOR_WINDOW;
+    wc.lpszClassName = "JunkWindowClass";
+
+    if (!RegisterClassExA(&wc)) {
+        jnk_log_fatal(CH_CORE, "Failed to register window class");
+        return false;
+    }
+
+    // Calculate window size with style
+    DWORD style = WS_OVERLAPPEDWINDOW;
+    DWORD exStyle = WS_EX_APPWINDOW;
+
+    RECT rect = {0, 0, (LONG)config->width, (LONG)config->height};
+    AdjustWindowRectEx(&rect, style, 0, exStyle);
+
+    HWND hwnd = CreateWindowExA(exStyle, "JunkWindowClass", config->title,
+                                style, CW_USEDEFAULT, CW_USEDEFAULT,
+                                rect.right - rect.left, rect.bottom - rect.top,
+                                JNK_NULL, JNK_NULL, hInstance, JNK_NULL);
+
+    if (!hwnd) {
+        jnk_log_fatal(CH_CORE, "Failed to create window");
+        return false;
+    }
+
+    ShowWindow(hwnd, SW_SHOW);
+    UpdateWindow(hwnd);
+
+    g_win->window.hwnd = (void *)hwnd;
+    g_win->window.width = config->width;
+    g_win->window.height = config->height;
+
+    jnk_log_info(CH_CORE, "Window system initialized (Win32)");
+    return true;
+}
+
+b8 window_system_pump(void) {
+    MSG msg;
+    b8 is_quit = false;
+
+    while (PeekMessageA(&msg, JNK_NULL, 0, 0, PM_REMOVE)) {
+        if (msg.message == WM_QUIT) {
+            is_quit = true;
+        }
+
+        TranslateMessage(&msg);
+        DispatchMessageA(&msg);
+    }
+
+    return !is_quit;
+}
+
+void window_system_kill(void *state) {
+    if (!state) return;
+
+    HWND hwnd = (HWND)g_win->window.hwnd;
+    if (hwnd) {
+        DestroyWindow(hwnd);
+        g_win->window.hwnd = JNK_NULL;
+    }
+
+    HINSTANCE hInstance = GetModuleHandleA(JNK_NULL);
+    UnregisterClassA("JunkWindowClass", hInstance);
+
+    jnk_log_info(CH_CORE, "Window system kill (Win32).");
+}
 
 #endif
 

@@ -119,6 +119,7 @@ const char *keycode_to_str(jnk_keys_t key) {
 
 #if JNK_LINUX
 #    include <X11/keysym.h>
+
 jnk_keys_t keycode_translate(u32 keycode) {
     switch (keycode) {
         // Alphanumeric
@@ -270,7 +271,137 @@ jnk_keys_t keycode_translate(u32 keycode) {
         default: return JNK_KEY_UNKNOWN;
     }
 }
+
 #elif JNK_WINDOWS
 #    include <windows.h>
-jnk_keys_t keycode_translate(u32 keycode) {}
+
+jnk_keys_t keycode_translate(u32 keycode) {
+    switch (keycode) {
+        // Alphanumeric
+        case 'A': return JNK_KEY_A;
+        case 'B': return JNK_KEY_B;
+        case 'C': return JNK_KEY_C;
+        case 'D': return JNK_KEY_D;
+        case 'E': return JNK_KEY_E;
+        case 'F': return JNK_KEY_F;
+        case 'G': return JNK_KEY_G;
+        case 'H': return JNK_KEY_H;
+        case 'I': return JNK_KEY_I;
+        case 'J': return JNK_KEY_J;
+        case 'K': return JNK_KEY_K;
+        case 'L': return JNK_KEY_L;
+        case 'M': return JNK_KEY_M;
+        case 'N': return JNK_KEY_N;
+        case 'O': return JNK_KEY_O;
+        case 'P': return JNK_KEY_P;
+        case 'Q': return JNK_KEY_Q;
+        case 'R': return JNK_KEY_R;
+        case 'S': return JNK_KEY_S;
+        case 'T': return JNK_KEY_T;
+        case 'U': return JNK_KEY_U;
+        case 'V': return JNK_KEY_V;
+        case 'W': return JNK_KEY_W;
+        case 'X': return JNK_KEY_X;
+        case 'Y': return JNK_KEY_Y;
+        case 'Z': return JNK_KEY_Z;
+
+        case '1': return JNK_KEY_1;
+        case '2': return JNK_KEY_2;
+        case '3': return JNK_KEY_3;
+        case '4': return JNK_KEY_4;
+        case '5': return JNK_KEY_5;
+        case '6': return JNK_KEY_6;
+        case '7': return JNK_KEY_7;
+        case '8': return JNK_KEY_8;
+        case '9': return JNK_KEY_9;
+        case '0': return JNK_KEY_0;
+
+        // Function Keys
+        case VK_F1: return JNK_KEY_F1;
+        case VK_F2: return JNK_KEY_F2;
+        case VK_F3: return JNK_KEY_F3;
+        case VK_F4: return JNK_KEY_F4;
+        case VK_F5: return JNK_KEY_F5;
+        case VK_F6: return JNK_KEY_F6;
+        case VK_F7: return JNK_KEY_F7;
+        case VK_F8: return JNK_KEY_F8;
+        case VK_F9: return JNK_KEY_F9;
+        case VK_F10: return JNK_KEY_F10;
+        case VK_F11: return JNK_KEY_F11;
+        case VK_F12: return JNK_KEY_F12;
+
+        case VK_ESCAPE: return JNK_KEY_ESCAPE;
+        case VK_RETURN: return JNK_KEY_ENTER;
+        case VK_TAB: return JNK_KEY_TAB;
+        case VK_BACK: return JNK_KEY_BACKSPACE;
+        case VK_INSERT: return JNK_KEY_INSERT;
+        case VK_DELETE: return JNK_KEY_DELETE;
+        case VK_HOME: return JNK_KEY_HOME;
+        case VK_END: return JNK_KEY_END;
+        case VK_PRIOR: return JNK_KEY_PAGEUP;  // Page Up
+        case VK_NEXT: return JNK_KEY_PAGEDOWN; // Page Down
+
+        case VK_LEFT: return JNK_KEY_LEFT;
+        case VK_RIGHT: return JNK_KEY_RIGHT;
+        case VK_UP: return JNK_KEY_UP;
+        case VK_DOWN: return JNK_KEY_DOWN;
+
+        // Modifier Keys
+        case VK_LSHIFT: return JNK_KEY_LSHIFT;
+        case VK_RSHIFT: return JNK_KEY_RSHIFT;
+        case VK_LCONTROL: return JNK_KEY_LCONTROL;
+        case VK_RCONTROL: return JNK_KEY_RCONTROL;
+        case VK_LMENU: return JNK_KEY_LALT;   // Left Alt
+        case VK_RMENU: return JNK_KEY_RALT;   // Right Alt
+        case VK_LWIN: return JNK_KEY_LSUPER;  // Left Windows key
+        case VK_RWIN: return JNK_KEY_RSUPER;  // Right Windows key
+        case VK_CAPITAL: return JNK_KEY_CAPS; // Caps Lock
+        case VK_NUMLOCK:
+            return JNK_KEY_NUM; // Num Lock
+
+        // Numpad
+        case VK_NUMPAD0: return JNK_KEY_KP_0;
+        case VK_NUMPAD1: return JNK_KEY_KP_1;
+        case VK_NUMPAD2: return JNK_KEY_KP_2;
+        case VK_NUMPAD3: return JNK_KEY_KP_3;
+        case VK_NUMPAD4: return JNK_KEY_KP_4;
+        case VK_NUMPAD5: return JNK_KEY_KP_5;
+        case VK_NUMPAD6: return JNK_KEY_KP_6;
+        case VK_NUMPAD7: return JNK_KEY_KP_7;
+        case VK_NUMPAD8: return JNK_KEY_KP_8;
+        case VK_NUMPAD9: return JNK_KEY_KP_9;
+        case VK_DECIMAL: return JNK_KEY_KP_DECIMAL;
+        case VK_SEPARATOR: return JNK_KEY_KP_ENTER;
+        case VK_ADD: return JNK_KEY_KP_ADD;
+        case VK_SUBTRACT: return JNK_KEY_KP_SUBSTRACT;
+        case VK_MULTIPLY: return JNK_KEY_KP_MULTIPLY;
+        case VK_DIVIDE: return JNK_KEY_KP_DIVIDE;
+
+        // Symbols
+        case VK_SPACE: return JNK_KEY_SPACE;
+        case VK_OEM_MINUS: return JNK_KEY_MINUS;   // - key
+        case VK_OEM_PLUS: return JNK_KEY_EQUAL;    // = key
+        case VK_OEM_4: return JNK_KEY_LBRACKET;    // [ key
+        case VK_OEM_6: return JNK_KEY_RBRACKET;    // ] key
+        case VK_OEM_1: return JNK_KEY_SEMICOLON;   // ; key
+        case VK_OEM_7: return JNK_KEY_APOSTROPHE;  // ' key
+        case VK_OEM_3: return JNK_KEY_GRAVE;       // ` key
+        case VK_OEM_COMMA: return JNK_KEY_COMMA;   // , key
+        case VK_OEM_PERIOD: return JNK_KEY_PERIOD; // . key
+        case VK_OEM_2: return JNK_KEY_SLASH;       // / key
+        case VK_OEM_5: return JNK_KEY_BACKSLASH;   // \ key
+        case VK_OEM_102: return JNK_KEY_BACKSLASH;
+
+        // For { and } - these are typically Shift+[ and Shift+]
+        // You might need to handle these with shift state
+
+        // Misc
+        case VK_SNAPSHOT: return JNK_KEY_PRINT_SCREEN; // Print Screen
+        case VK_SCROLL: return JNK_KEY_SCROLL_LOCK;    // Scroll Lock
+        case VK_PAUSE: return JNK_KEY_PAUSE;           // Pause/Break
+
+        default: return JNK_KEY_UNKNOWN;
+    }
+}
+
 #endif

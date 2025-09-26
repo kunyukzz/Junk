@@ -3,6 +3,7 @@
 #include "clock.h"
 #include "event/event.h"
 #include "event/input.h"
+#include "platform/filesystem.h"
 #include "platform/window.h"
 #include "platform/platform.h"
 
@@ -16,7 +17,9 @@ typedef struct {
     u64 memory_req;
     void *state;
 } state;
+
 typedef struct {
+    state filesystem;
     state event;
     state input;
     state window;
@@ -28,6 +31,7 @@ typedef struct jnk_engine_context {
     arena_alloc_t arena;
     time_clock_t time_clock;
     subs subs;
+
     f64 last_time;
     b8 is_running;
     b8 is_suspend;
@@ -113,13 +117,21 @@ static b8 engine_pre_init(struct user_entry_t *entry) {
     // if (!validate_renderer_config(&entry->engine_config.renderer)) return
     // false;
 
+    filesys_init(&g_engine->subs.filesystem.memory_req, JNK_NULL);
     event_system_init(&g_engine->subs.event.memory_req, JNK_NULL);
     input_system_init(&g_engine->subs.input.memory_req, JNK_NULL);
     window_system_init(&g_engine->subs.window.memory_req, JNK_NULL);
 
-    u64 total_memory = g_engine->subs.event.memory_req +
-                       g_engine->subs.input.memory_req +
-                       g_engine->subs.window.memory_req + entry->memory_req;
+    u64 reqs[5];
+    const char *labels[5] = {"filesystem", "event", "input", "window", "entry"};
+
+    reqs[0] = g_engine->subs.filesystem.memory_req;
+    reqs[1] = g_engine->subs.event.memory_req;
+    reqs[2] = g_engine->subs.input.memory_req;
+    reqs[3] = g_engine->subs.window.memory_req;
+    reqs[4] = entry->memory_req;
+
+    u64 total_memory = arena_calc_req(labels, reqs, 5);
 
     if (total_memory > estimated_memory) {
         jnk_log_error(CH_CORE,
@@ -131,8 +143,8 @@ static b8 engine_pre_init(struct user_entry_t *entry) {
     jnk_log_debug(CH_CORE, "Estimated Memory: %lu, Needed Memory: %lu",
                   estimated_memory, total_memory);
 
-    arena_set(total_memory, JNK_NULL, &g_engine->arena);
-    return true;
+    return arena_set(total_memory, JNK_NULL, &g_engine->arena);
+    // return true;
 }
 
 b8 engine_on_input(u32 type, jnk_event_t *ev, void *sender, void *recipient);
@@ -145,6 +157,10 @@ b8 engine_init(struct user_entry_t *entry) {
         return false;
     }
     arena_alloc_t *arena = &g_engine->arena;
+
+    g_engine->subs.filesystem.state =
+        arena_alloc(arena, g_engine->subs.filesystem.memory_req);
+    filesys_init(JNK_NULL, g_engine->subs.filesystem.state);
 
     g_engine->subs.event.state =
         arena_alloc(arena, g_engine->subs.event.memory_req);
@@ -240,6 +256,7 @@ b8 engine_run(void) {
     window_system_kill(g_engine->subs.window.state);
     input_system_kill(g_engine->subs.input.state);
     event_system_kill(g_engine->subs.event.state);
+    filesys_kill(g_engine->subs.filesystem.state);
 
     arena_end(&g_engine->arena);
 

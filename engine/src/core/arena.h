@@ -13,6 +13,8 @@ typedef struct {
     b8 own_memory;
 } arena_alloc_t;
 
+u64 arena_calc_req(const char *labels[], u64 *sizes, u32 count);
+
 b8 arena_set(u64 total_size, void *memory, arena_alloc_t *arena);
 void arena_end(arena_alloc_t *arena);
 void *arena_alloc_align(arena_alloc_t *arena, u64 size, u8 alignment);

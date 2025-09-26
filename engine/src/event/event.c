@@ -51,8 +51,6 @@ void event_system_kill(void *state) {
     if (g_ev) {
         for (u32 i = 0; i < JNK_MAX; ++i) {
             if (g_ev->reg[i].events != 0) {
-                log_ptr_offset("event_system_kill", g_ev, g_ev->reg[i].events);
-
                 jnk_darray_kill((void **)&g_ev->reg[i].events);
                 g_ev->reg[i].events = JNK_NULL;
             }
@@ -98,6 +96,7 @@ b8 event_unreg(u32 type, on_event handler, void *recipient) {
         if (evh->recipient == recipient && evh->callback == handler) {
             ev_handler pops;
             jnk_darray_pop_at(g_ev->reg[type].events, i, &pops);
+            log_ptr_offset("event_unreg", g_ev->reg, g_ev->reg[type].events);
             return true;
         }
     }

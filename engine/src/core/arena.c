@@ -5,6 +5,25 @@
 
 #define DEFAULT_ALIGNMENT 0x10
 
+u64 arena_calc_req(const char *labels[], u64 *sizes, u32 count) {
+    u64 offset = 0;
+    for (u32 i = 0; i < count; ++i) {
+        u64 aligned_off =
+            (offset + (DEFAULT_ALIGNMENT - 1)) & ~(u64)(DEFAULT_ALIGNMENT - 1);
+        u64 padding = aligned_off - offset;
+        u64 aligned_size = sizes[i] + padding;
+
+        jnk_log_debug(CH_MEMS,
+                      "Arena: %-10s req= %4lluB align= %4lluB (pad= %2llu)",
+                      labels[i], sizes[i], aligned_size, padding);
+
+        offset = aligned_off + sizes[i];
+    }
+
+    jnk_log_debug(CH_MEMS, "Arena total: %lluB", offset);
+    return offset;
+}
+
 b8 arena_set(u64 total_size, void *memory, arena_alloc_t *arena) {
     if (arena) {
         arena->total_size = total_size;
