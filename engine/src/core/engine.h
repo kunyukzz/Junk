@@ -6,14 +6,14 @@
 
 JNK_EXTERN_C_BEGIN
 
-/*
-b8 engine_init(const jnk_engine_config_t *cfg, const jnk_game_callbacks_t *cb,
-               void **engine_state, void *user_state);
-               */
+typedef struct jnk_engine_context_t jnk_engine_context_t;
 
 b8 engine_init(struct user_entry_t *entry);
 
 b8 engine_run(void);
+
+jnk_window_config_t *engine_get_window_config(void);
+jnk_renderer_config_t *engine_get_render_config(void);
 
 JNK_EXTERN_C_END
 #endif // JUNK_ENGINE_H

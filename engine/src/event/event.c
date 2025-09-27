@@ -25,8 +25,7 @@ static uptr pointer_offset(const void *base, const void *ptr) {
     return (uptr)ptr - (uptr)base;
 }
 
-static void log_ptr_offset(const char *label, const void *base,
-                           const void *ptr) {
+void log_ptr_offset(const char *label, const void *base, const void *ptr) {
     uintptr_t offset = pointer_offset(base, ptr);
 
     jnk_log_trace(CH_MEMS,
@@ -67,7 +66,7 @@ b8 event_reg(u32 type, on_event handler, void *recipient) {
 
     if (g_ev->reg[type].events == 0) {
         g_ev->reg[type].events = jnk_darray_init(sizeof(ev_handler));
-        log_ptr_offset("event_reg", g_ev->reg, g_ev->reg[type].events);
+        // log_ptr_offset("event_reg", g_ev->reg, g_ev->reg[type].events);
     }
 
     u64 count = jnk_darray_length(g_ev->reg[type].events);
@@ -96,7 +95,7 @@ b8 event_unreg(u32 type, on_event handler, void *recipient) {
         if (evh->recipient == recipient && evh->callback == handler) {
             ev_handler pops;
             jnk_darray_pop_at(g_ev->reg[type].events, i, &pops);
-            log_ptr_offset("event_unreg", g_ev->reg, g_ev->reg[type].events);
+            // log_ptr_offset("event_unreg", g_ev->reg, g_ev->reg[type].events);
             return true;
         }
     }

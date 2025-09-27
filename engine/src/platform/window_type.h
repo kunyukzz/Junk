@@ -15,8 +15,8 @@ typedef struct {
 #endif
 
     const char *title;
-    uptr width;
-    uptr height;
+    u32 width;
+    u32 height;
 } jnk_window_t;
 
 JNK_EXTERN_C_END

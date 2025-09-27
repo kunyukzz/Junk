@@ -42,6 +42,9 @@ b8 user_setup(user_entry_t *entry) {
     entry->engine_config.window.title = "Junk Testbed";
     entry->engine_config.window.resizable = true;
 
+    // Renderer setup
+    entry->engine_config.renderer.vsync = false;
+
     // Callbacks
     entry->init = user_init;
     entry->update = user_update;
@@ -49,7 +52,6 @@ b8 user_setup(user_entry_t *entry) {
     entry->kill = user_shutdown;
 
     entry->memory_req = sizeof(user_state_t);
-    // entry->user_state = JMALLOC(sizeof(entry->user_state), MEM_GAME);
 
     return true;
 }

@@ -4,6 +4,8 @@
 #include "event/input.h"
 #include "event/event.h"
 
+#include "engine.h"
+
 static window_state_t *g_win = JNK_NULL;
 
 #if JNK_LINUX
@@ -15,7 +17,8 @@ b8 window_system_init(u64 *memory_req, void *state) {
     if (!state) return true;
     g_win = (window_state_t *)state;
 
-    const jnk_window_config_t *config = g_win->config;
+    const jnk_window_config_t *config = engine_get_window_config();
+    g_win->config = config;
     if (!config) {
         jnk_log_fatal(CH_CORE, "window config was not setup!");
         return false;
@@ -322,4 +325,4 @@ void window_system_kill(void *state) {
 
 #endif
 
-window_state_t *window_system_get_window(void) { return g_win; }
+window_state_t *system_get_window(void) { return g_win; }

@@ -51,8 +51,7 @@ void arena_end(arena_alloc_t *arena) {
         arena->curr_offset = 0;
 
         if (arena->memory) {
-            jnk_log_info(CH_MEMS, "Arena success with freeing %lluB",
-                         arena->total_size);
+            jnk_log_debug(CH_MEMS, "Arena free: %lluB", arena->total_size);
             JFREE(arena->memory, arena->total_size, MEM_ARENA);
         }
 

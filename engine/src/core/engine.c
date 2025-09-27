@@ -6,12 +6,14 @@
 #include "platform/filesystem.h"
 #include "platform/window.h"
 #include "platform/platform.h"
+#include "renderer/re_frontend.h"
 
 #include "junk/jnk_memory.h"
 #include "junk/jnk_log.h"
 #include "junk/jnk_application.h"
 
 #include <string.h>
+#include <stdio.h>
 
 typedef struct {
     u64 memory_req;
@@ -23,9 +25,10 @@ typedef struct {
     state event;
     state input;
     state window;
+    state render;
 } subs;
 
-typedef struct jnk_engine_context {
+struct jnk_engine_context_t {
     user_entry_t *entry;
 
     arena_alloc_t arena;
@@ -35,7 +38,7 @@ typedef struct jnk_engine_context {
     f64 last_time;
     b8 is_running;
     b8 is_suspend;
-} jnk_engine_context_t;
+};
 
 static jnk_engine_context_t *g_engine = {};
 
@@ -71,27 +74,6 @@ static b8 validate_renderer_config(const jnk_renderer_config_t *config) {
         jnk_log_error(CH_CORE, "renderer config is NULL");
         return false;
     }
-    if (config->vulkan_version < 1000 || config->vulkan_version > 2000) {
-        jnk_log_error(CH_CORE, "Unsupported Vulkan version: %u",
-                      config->vulkan_version);
-        return false;
-    }
-    if (config->vram_budget_mb < 256 || config->vram_budget_mb > 16384) {
-        jnk_log_error(CH_CORE, "Unreasonable VRAM budget: %lu MB",
-                      config->vram_budget_mb);
-        return false;
-    }
-    if (config->msaa_samples != 1 && config->msaa_samples != 2 &&
-        config->msaa_samples != 4) {
-        jnk_log_error(CH_CORE, "Invalid MSAA samples: %u (must be 1, 2, or 4)",
-                      config->msaa_samples);
-        return false;
-    }
-    if (config->max_texture_resolution > 16384) {
-        jnk_log_error(CH_CORE, "Max texture resolution too high: %u",
-                      config->max_texture_resolution);
-        return false;
-    }
     return true;
 }
 
@@ -104,7 +86,7 @@ static b8 engine_pre_init(struct user_entry_t *entry) {
         return false;
     }
 
-    // TODO: if malloc outside engine, memory counter not detected the size.
+    // TODO: if user-malloc outside engine, memory counter cannot count.
     entry->user_state = JMALLOC(sizeof(entry->user_state), MEM_GAME);
     entry->engine_state = JMALLOC(sizeof(jnk_engine_context_t), MEM_ENGINE);
 
@@ -114,24 +96,28 @@ static b8 engine_pre_init(struct user_entry_t *entry) {
     g_engine->is_suspend = false;
 
     if (!validate_window_config(&entry->engine_config.window)) return false;
-    // if (!validate_renderer_config(&entry->engine_config.renderer)) return
-    // false;
+    if (!validate_renderer_config(&entry->engine_config.renderer)) return false;
 
     filesys_init(&g_engine->subs.filesystem.memory_req, JNK_NULL);
     event_system_init(&g_engine->subs.event.memory_req, JNK_NULL);
     input_system_init(&g_engine->subs.input.memory_req, JNK_NULL);
     window_system_init(&g_engine->subs.window.memory_req, JNK_NULL);
+    renderer_system_init(&g_engine->subs.render.memory_req, JNK_NULL);
 
-    u64 reqs[5];
-    const char *labels[5] = {"filesystem", "event", "input", "window", "entry"};
+    // TODO: this is ugly as hell
+    u16 count = 6;
+    u64 reqs[count];
+    const char *labels[6] = {"filesys", "event",    "input",
+                             "window",  "renderer", "entry"};
 
     reqs[0] = g_engine->subs.filesystem.memory_req;
     reqs[1] = g_engine->subs.event.memory_req;
     reqs[2] = g_engine->subs.input.memory_req;
     reqs[3] = g_engine->subs.window.memory_req;
-    reqs[4] = entry->memory_req;
+    reqs[4] = g_engine->subs.render.memory_req;
+    reqs[5] = entry->memory_req;
 
-    u64 total_memory = arena_calc_req(labels, reqs, 5);
+    u64 total_memory = arena_calc_req(labels, reqs, count);
 
     if (total_memory > estimated_memory) {
         jnk_log_error(CH_CORE,
@@ -139,9 +125,9 @@ static b8 engine_pre_init(struct user_entry_t *entry) {
                       estimated_memory, total_memory);
     }
 
-    jnk_log_info(CH_CORE, "Memory system initialized");
     jnk_log_debug(CH_CORE, "Estimated Memory: %lu, Needed Memory: %lu",
                   estimated_memory, total_memory);
+    jnk_log_info(CH_CORE, "Memory system initialized");
 
     return arena_set(total_memory, JNK_NULL, &g_engine->arena);
     // return true;
@@ -172,9 +158,15 @@ b8 engine_init(struct user_entry_t *entry) {
 
     g_engine->subs.window.state =
         arena_alloc(arena, g_engine->subs.window.memory_req);
+    /*
     ((window_state_t *)g_engine->subs.window.state)->config =
         &g_engine->entry->engine_config.window;
+        */
     window_system_init(JNK_NULL, g_engine->subs.window.state);
+
+    g_engine->subs.render.state =
+        arena_alloc(arena, g_engine->subs.render.memory_req);
+    renderer_system_init(JNK_NULL, g_engine->subs.render.state);
 
     if (!g_engine->entry->init(g_engine->entry)) {
         return false;
@@ -188,7 +180,7 @@ b8 engine_init(struct user_entry_t *entry) {
     event_reg(JNK_KEY_PRESS, engine_on_input, JNK_NULL);
     event_reg(JNK_KEY_RELEASE, engine_on_input, JNK_NULL);
 
-    jnk_log_info(CH_CORE, "Engine Initialized.");
+    jnk_log_info(CH_CORE, "Engine Initialized");
     return true;
 }
 
@@ -203,9 +195,12 @@ b8 engine_run(void) {
     f64 runtime = 0;
     u8 frame_count = 0;
     f32 target_frame_seconds = 1.0f / 60;
-    const b8 limit = false;
+    const b8 limit = g_engine->entry->engine_config.renderer.vsync;
+    // printf("vsync = %d\n", limit);
 
     jnk_log_info(CH_CORE, "%s", mem_debug_stat());
+    jnk_log_info(CH_CORE, "%s", vram_status());
+
     while (g_engine->is_running) {
         if (!window_system_pump()) {
             g_engine->is_running = false;
@@ -253,6 +248,7 @@ b8 engine_run(void) {
     event_unreg(JNK_KEY_PRESS, engine_on_input, JNK_NULL);
     event_unreg(JNK_KEY_RELEASE, engine_on_input, JNK_NULL);
 
+    renderer_system_kill(g_engine->subs.render.state);
     window_system_kill(g_engine->subs.window.state);
     input_system_kill(g_engine->subs.input.state);
     event_system_kill(g_engine->subs.event.state);
@@ -267,6 +263,7 @@ b8 engine_run(void) {
 
     JFREE(g_engine, sizeof(jnk_engine_context_t), MEM_ENGINE);
     memory_system_kill();
+    jnk_log_info(CH_CORE, "Engine Kill");
     return true;
 }
 
@@ -374,4 +371,12 @@ b8 engine_on_resize(u32 type, jnk_event_t *ev, void *sender, void *recipient) {
         // renderer_system_resize(w, h);
     }
     return true;
+}
+
+jnk_window_config_t *engine_get_window_config(void) {
+    return &g_engine->entry->engine_config.window;
+}
+
+jnk_renderer_config_t *engine_get_render_config(void) {
+    return &g_engine->entry->engine_config.renderer;
 }

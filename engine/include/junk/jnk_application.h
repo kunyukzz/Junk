@@ -16,16 +16,7 @@ typedef struct jnk_window_config_t {
 } jnk_window_config_t;
 
 typedef struct jnk_renderer_config {
-    u32 vulkan_version; // 1000 for 1.0, 1002 for 1.2, etc
-
-    u64 vram_budget_mb; // 1024 or 1532 (1-1.5GB)
-
-    u32 msaa_samples; // 1, 2, 4 (no 8x to save VRAM)
-    b8 vsync;         // true for stable framerate
-
-    u32 max_texture_resolution; // 2048 or 4096 to limit VRAM
-    u32 max_vertex_count;       // Prevent insane geometry
-    u32 max_texture_count;      // Reasonable material limit
+    b8 vsync; // true for stable framerate
 } jnk_renderer_config_t;
 
 typedef struct jnk_engine_config {

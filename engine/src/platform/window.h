@@ -18,5 +18,7 @@ b8 window_system_pump(void);
 
 void window_system_kill(void *state);
 
+window_state_t *system_get_window(void);
+
 JNK_EXTERN_C_END
 #endif // JUNK_WINDOW_H
