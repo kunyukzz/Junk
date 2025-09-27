@@ -32,7 +32,7 @@ static const char *const req_instance_ext[] = {
 static u32 find_mem_type(vk_core_t *core, u32 type_filter,
                          VkMemoryPropertyFlags props) {
     VkPhysicalDeviceMemoryProperties mem_props;
-    vk.vkGetPhysicalDeviceMemoryProperties(core->gpu, &mem_props);
+    jnk.vkGetPhysicalDeviceMemoryProperties(core->gpu, &mem_props);
 
     for (u32 i = 0; i < mem_props.memoryTypeCount; ++i) {
         if ((type_filter & (1 << i)) &&
@@ -83,8 +83,8 @@ static b8 init_debugger(vk_core_t *core) {
 
     debug_info.pfnUserCallback = dbg_callback;
 
-    VK_CHK(vk.vkCreateDebugUtilsMessengerEXT(core->instance, &debug_info,
-                                             core->alloc, &core->util_dbg));
+    VK_CHK(jnk.vkCreateDebugUtilsMessengerEXT(core->instance, &debug_info,
+                                              core->alloc, &core->util_dbg));
 
     if (!jnk_vk_load_instance(core->instance)) {
         jnk_log_fatal(CH_GFX, "failed to load debugger vulkan");
@@ -98,12 +98,12 @@ static b8 init_debugger(vk_core_t *core) {
 static b8 chk_validation_support(vk_core_t *core) {
     (void)core;
     u32 count = 0;
-    vk.vkEnumerateInstanceLayerProperties(&count, NULL);
+    jnk.vkEnumerateInstanceLayerProperties(&count, NULL);
     VkLayerProperties *avail =
         (VkLayerProperties *)JMALLOC(sizeof(VkLayerProperties) * count,
                                      MEM_RENDER);
 
-    vk.vkEnumerateInstanceLayerProperties(&count, avail);
+    jnk.vkEnumerateInstanceLayerProperties(&count, avail);
 
     for (u32 i = 0; i < ARRAY_COUNT(req_validation_layers); ++i) {
         b8 found = false;
@@ -133,15 +133,15 @@ void get_req_ext(const char *const **out_list, uint32_t *ext_count) {
 static b8 chk_dvc_support(VkPhysicalDevice gpu) {
     u32 count = 0;
 
-    vk.vkEnumerateDeviceExtensionProperties(gpu, JNK_NULL, &count, JNK_NULL);
+    jnk.vkEnumerateDeviceExtensionProperties(gpu, JNK_NULL, &count, JNK_NULL);
     VkExtensionProperties *avail =
         (VkExtensionProperties *)JMALLOC(sizeof(VkExtensionProperties) * count,
                                          MEM_RENDER);
 
-    vk.vkEnumerateDeviceExtensionProperties(gpu, JNK_NULL, &count, avail);
+    jnk.vkEnumerateDeviceExtensionProperties(gpu, JNK_NULL, &count, avail);
 
     VkPhysicalDeviceProperties dvc_prop;
-    vk.vkGetPhysicalDeviceProperties(gpu, &dvc_prop);
+    jnk.vkGetPhysicalDeviceProperties(gpu, &dvc_prop);
 
     for (u32 i = 0; i < ARRAY_COUNT(req_device_ext); ++i) {
         b8 found = false;
@@ -165,8 +165,8 @@ static b8 chk_dvc_support(VkPhysicalDevice gpu) {
 static i32 score_device(VkPhysicalDevice gpu) {
     VkPhysicalDeviceProperties props;
     VkPhysicalDeviceMemoryProperties mems;
-    vk.vkGetPhysicalDeviceProperties(gpu, &props);
-    vk.vkGetPhysicalDeviceMemoryProperties(gpu, &mems);
+    jnk.vkGetPhysicalDeviceProperties(gpu, &props);
+    jnk.vkGetPhysicalDeviceMemoryProperties(gpu, &mems);
 
     i32 score = 0;
     if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) score += 1000;
@@ -184,12 +184,12 @@ static i32 score_device(VkPhysicalDevice gpu) {
 
 static b8 pick_physical_device(vk_core_t *core) {
     u32 count = 0;
-    vk.vkEnumeratePhysicalDevices(core->instance, &count, JNK_NULL);
+    jnk.vkEnumeratePhysicalDevices(core->instance, &count, JNK_NULL);
     if (count == 0) return false;
 
     VkPhysicalDevice *gpus =
         JMALLOC(sizeof(VkPhysicalDevice) * count, MEM_RENDER);
-    vk.vkEnumeratePhysicalDevices(core->instance, &count, gpus);
+    jnk.vkEnumeratePhysicalDevices(core->instance, &count, gpus);
 
     VkPhysicalDevice best = VK_NULL_HANDLE;
     i32 best_score = -1;
@@ -208,9 +208,9 @@ static b8 pick_physical_device(vk_core_t *core) {
     if (best == VK_NULL_HANDLE) return false;
 
     core->gpu = best;
-    vk.vkGetPhysicalDeviceProperties(core->gpu, &core->properties);
-    vk.vkGetPhysicalDeviceFeatures(core->gpu, &core->features);
-    vk.vkGetPhysicalDeviceMemoryProperties(core->gpu, &core->mem_prop);
+    jnk.vkGetPhysicalDeviceProperties(core->gpu, &core->properties);
+    jnk.vkGetPhysicalDeviceFeatures(core->gpu, &core->features);
+    jnk.vkGetPhysicalDeviceMemoryProperties(core->gpu, &core->mem_prop);
 
     jnk_log_debug(CH_GFX, "Selected GPU: %s", core->properties.deviceName);
     return true;
@@ -222,8 +222,8 @@ static VkFormat find_supported_format(vk_core_t *core,
                                       VkFormatFeatureFlags features) {
     for (u32 i = 0; i < candidate_count; ++i) {
         VkFormatProperties props;
-        vk.vkGetPhysicalDeviceFormatProperties(core->gpu, candidates[i],
-                                               &props);
+        jnk.vkGetPhysicalDeviceFormatProperties(core->gpu, candidates[i],
+                                                &props);
 
         if (tiling == VK_IMAGE_TILING_LINEAR &&
             (props.linearTilingFeatures & features) == features)
@@ -237,10 +237,10 @@ static VkFormat find_supported_format(vk_core_t *core,
 
 static b8 pick_queue_families(vk_core_t *core) {
     u32 count;
-    vk.vkGetPhysicalDeviceQueueFamilyProperties(core->gpu, &count, JNK_NULL);
+    jnk.vkGetPhysicalDeviceQueueFamilyProperties(core->gpu, &count, JNK_NULL);
     VkQueueFamilyProperties *families =
         JMALLOC(sizeof(VkQueueFamilyProperties) * count, MEM_RENDER);
-    vk.vkGetPhysicalDeviceQueueFamilyProperties(core->gpu, &count, families);
+    jnk.vkGetPhysicalDeviceQueueFamilyProperties(core->gpu, &count, families);
 
     core->graphic_idx = UINT32_MAX;
     core->transfer_idx = UINT32_MAX;
@@ -292,16 +292,16 @@ static b8 create_logical_device(vk_core_t *core) {
     info.ppEnabledExtensionNames = req_device_ext;
     info.pEnabledFeatures = &enable_feats;
 
-    VK_CHK(vk.vkCreateDevice(core->gpu, &info, core->alloc, &core->logic_dvc));
+    VK_CHK(jnk.vkCreateDevice(core->gpu, &info, core->alloc, &core->logic_dvc));
 
     if (!jnk_vk_load_device(core->logic_dvc)) return false;
 
-    vk.vkGetDeviceQueue(core->logic_dvc, core->graphic_idx, 0,
-                        &core->graphic_queue);
-    vk.vkGetDeviceQueue(core->logic_dvc, core->transfer_idx, 0,
-                        &core->transfer_queue);
-    vk.vkGetDeviceQueue(core->logic_dvc, core->present_idx, 0,
-                        &core->present_queue);
+    jnk.vkGetDeviceQueue(core->logic_dvc, core->graphic_idx, 0,
+                         &core->graphic_queue);
+    jnk.vkGetDeviceQueue(core->logic_dvc, core->transfer_idx, 0,
+                         &core->transfer_queue);
+    jnk.vkGetDeviceQueue(core->logic_dvc, core->present_idx, 0,
+                         &core->present_queue);
 
     jnk_log_debug(CH_GFX, "vulkan device initialize");
     return true;
@@ -312,8 +312,8 @@ static b8 create_command_pool(vk_core_t *core) {
     pool.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     pool.queueFamilyIndex = core->graphic_idx;
     pool.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    VK_CHK(vk.vkCreateCommandPool(core->logic_dvc, &pool, core->alloc,
-                                  &core->gfx_cmd_pool));
+    VK_CHK(jnk.vkCreateCommandPool(core->logic_dvc, &pool, core->alloc,
+                                   &core->gfx_cmd_pool));
 
     jnk_log_debug(CH_GFX, "vulkan command pool initialize");
     return true;
@@ -355,13 +355,22 @@ static b8 init_instance(vk_core_t *core) {
     inst_info.enabledLayerCount = layer_count;
     inst_info.ppEnabledLayerNames = layer_names;
 
-    VK_CHK(vk.vkCreateInstance(&inst_info, core->alloc, &core->instance));
+    VK_CHK(jnk.vkCreateInstance(&inst_info, core->alloc, &core->instance));
 
     if (!jnk_vk_load_instance(core->instance)) {
         jnk_log_fatal(CH_CORE, "Failed to load instance vulkan table");
         return false;
     }
 
+    return true;
+}
+
+static b8 memory_init(vk_core_t *core) {
+    core->memories.total_allocated = 0;
+    core->memories.dvc_local_used = 0;
+    core->memories.host_visible_used = 0;
+
+    core->memories.budget = 1 * 1024 * 1024 * 1024ULL;
     return true;
 }
 
@@ -392,26 +401,85 @@ b8 vk_core_init(vk_core_t *core) {
 
     if (!create_logical_device(core)) return false;
     if (!create_command_pool(core)) return false;
-    // if (!memory_init(core)) return false;
+    if (!memory_init(core)) return false;
 
     jnk_log_debug(CH_GFX, "vulkan core initialize");
     return true;
 }
 
 void vk_core_kill(vk_core_t *core) {
-    vk.vkDestroyCommandPool(core->logic_dvc, core->gfx_cmd_pool, core->alloc);
+    jnk.vkDestroyCommandPool(core->logic_dvc, core->gfx_cmd_pool, core->alloc);
     core->gfx_cmd_pool = VK_NULL_HANDLE;
     jnk_log_debug(CH_GFX, "vulkan command pool kill");
 
-    vk.vkDestroyDevice(core->logic_dvc, core->alloc);
+    jnk.vkDestroyDevice(core->logic_dvc, core->alloc);
     jnk_log_debug(CH_GFX, "vulkan device kill");
 
 #if JNK_DEBUG
-    vk.vkDestroyDebugUtilsMessengerEXT(core->instance, core->util_dbg,
-                                       core->alloc);
+    jnk.vkDestroyDebugUtilsMessengerEXT(core->instance, core->util_dbg,
+                                        core->alloc);
     jnk_log_debug(CH_GFX, "vulkan debugger kill");
 #endif
 
-    vk.vkDestroyInstance(core->instance, core->alloc);
+    jnk.vkDestroyInstance(core->instance, core->alloc);
     jnk_log_debug(CH_GFX, "vulkan core kill");
+}
+
+b8 vk_mem_alloc(vk_core_t *core, VkMemoryRequirements *memory_req,
+                VkMemoryPropertyFlags flags, VkDeviceMemory *out,
+                vk_memtag_t tag) {
+    if ((core->memories.total_allocated + memory_req->size) >
+        core->memories.budget) {
+        jnk_log_error(CH_GFX,
+                      "VRAM Budget exceeded! Could not allocate %llu bytes. "
+                      "Total: %llu / %llu",
+                      memory_req->size, core->memories.total_allocated,
+                      core->memories.budget);
+        return false;
+    }
+
+    VkMemoryAllocateInfo alloc_info = {};
+    alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    alloc_info.allocationSize = memory_req->size;
+    alloc_info.memoryTypeIndex =
+        find_mem_type(core, memory_req->memoryTypeBits, flags);
+
+    if (alloc_info.memoryTypeIndex == UINT32_MAX) {
+        jnk_log_error(CH_GFX, "Invalid memory type index returned!");
+        return false;
+    }
+
+    VkResult res =
+        jnk.vkAllocateMemory(core->logic_dvc, &alloc_info, core->alloc, out);
+
+    if (res == VK_SUCCESS) {
+        core->memories.total_allocated += memory_req->size;
+        core->memories.tag_alloc_count[tag]++;
+        core->memories.tag_allocation[tag] += memory_req->size;
+
+        if (flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
+            core->memories.dvc_local_used += memory_req->size;
+        } else if (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
+            core->memories.host_visible_used += memory_req->size;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+void vk_mem_free(vk_core_t *core, VkDeviceMemory memory,
+                 VkMemoryPropertyFlags flags, VkDeviceSize size,
+                 vk_memtag_t tag) {
+    jnk.vkFreeMemory(core->logic_dvc, memory, core->alloc);
+    core->memories.total_allocated -= size;
+    core->memories.tag_alloc_count[tag]--;
+    core->memories.tag_allocation[tag] -= size;
+
+    if (flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
+        core->memories.dvc_local_used -= size;
+    } else if (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
+        core->memories.host_visible_used -= size;
+    }
 }

@@ -206,7 +206,7 @@ typedef struct jnk_vk_table_t {
 #endif
 } jnk_vk_table_t;
 
-extern jnk_vk_table_t vk;
+extern jnk_vk_table_t jnk;
 
 b8 jnk_vk_init(void);
 b8 jnk_vk_load_instance(VkInstance inst);

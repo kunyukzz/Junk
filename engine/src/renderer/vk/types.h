@@ -16,6 +16,61 @@
 
 JNK_EXTERN_C_BEGIN
 
+// =============== IMAGES & MEMORY
+// ===============
+typedef struct {
+    VkImage handle;
+    VkImageView view;
+    VkFormat format;
+
+    VkDeviceMemory memory;
+    VkDeviceSize size;
+
+    u32 width;
+    u32 height;
+} vk_image_t;
+
+// =============== SWAPCHAIN
+// ===============
+typedef struct {
+    VkImage *images;
+    VkImageView *img_views;
+    VkFramebuffer *framebuffer;
+
+    VkSurfaceKHR surface;
+    VkSwapchainKHR handle;
+
+    VkSurfaceCapabilitiesKHR caps;
+    VkSurfaceFormatKHR surface_format;
+
+    VkExtent2D extents;
+
+    VkPresentModeKHR present_mode;
+    VkFormat image_format;
+    u32 image_count;
+
+    vk_image_t color_attach;
+    vk_image_t depth_attach;
+} vk_swapchain_t;
+
+// =============== CORE
+// ===============
+
+typedef enum {
+    RDR_TAG_UNKNOWN = 0x00,
+    RDR_TAG_TEXTURE,        // Base color, normal, roughness/metallic maps
+    RDR_TAG_TEXTURE_HDR,    // HDR cubemaps, IBL textures
+    RDR_TAG_TEXTURE_UI,     // UI atlas, fonts
+    RDR_TAG_BUFFER_VERTEX,  // Vertex buffers for meshes
+    RDR_TAG_BUFFER_INDEX,   // Index buffers
+    RDR_TAG_BUFFER_UNIFORM, // Uniform buffers (per-frame, per-object)
+    RDR_TAG_BUFFER_STAGING, // Staging buffers for uploads
+    RDR_TAG_BUFFER_COMPUTE, // SSBOs for compute shaders
+    RDR_TAG_RENDER_TARGET,  // Color attachments, G-Buffers
+    RDR_TAG_DEPTH_TARGET,   // Depth/Stencil attachments
+    RDR_TAG_COUNT
+} vk_memtag_t;
+
 typedef struct {
 #if JNK_DEBUG
     VkDebugUtilsMessengerEXT util_dbg;
@@ -38,8 +93,8 @@ typedef struct {
         VkDeviceSize dvc_local_used;
         VkDeviceSize host_visible_used;
 
-        // uint64_t tag_alloc_count[RDR_TAG_COUNT];
-        // uint64_t tag_allocation[RDR_TAG_COUNT];
+        u64 tag_alloc_count[RDR_TAG_COUNT];
+        u64 tag_allocation[RDR_TAG_COUNT];
     } memories;
 
     VkQueue graphic_queue;
@@ -47,9 +102,9 @@ typedef struct {
     VkQueue transfer_queue;
     VkFormat default_depth_format;
 
-    uint32_t graphic_idx;
-    uint32_t present_idx;
-    uint32_t transfer_idx;
+    u32 graphic_idx;
+    u32 present_idx;
+    u32 transfer_idx;
 } vk_core_t;
 
 JNK_EXTERN_C_END
