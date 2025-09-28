@@ -53,7 +53,7 @@ typedef struct {
             i16 lx, ly;
             i16 rx, ry;
             u8 lt, rt;
-            u8 _pad[5];
+            u8 _pad[6];
         } gamepad;
 
         struct {

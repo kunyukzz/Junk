@@ -13,9 +13,7 @@ typedef struct {
 } window_state_t;
 
 b8 window_system_init(u64 *memory_req, void *state);
-
 b8 window_system_pump(void);
-
 void window_system_kill(void *state);
 
 window_state_t *system_get_window(void);

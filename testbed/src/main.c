@@ -27,6 +27,13 @@ b8 user_render(user_entry_t *entry, f32 delta) {
     return true;
 }
 
+void user_resize(user_entry_t *entry, u32 width, u32 height) {
+    user_state_t *state = (user_state_t *)entry->user_state;
+    (void)state;
+    (void)width;
+    (void)height;
+}
+
 void user_shutdown(user_entry_t *entry) {
     if (entry->user_state) {
         JFREE(entry->user_state, sizeof(user_state_t), MEM_GAME);
@@ -49,6 +56,7 @@ b8 user_setup(user_entry_t *entry) {
     entry->init = user_init;
     entry->update = user_update;
     entry->render = user_render;
+    entry->resize = user_resize;
     entry->kill = user_shutdown;
 
     entry->memory_req = sizeof(user_state_t);

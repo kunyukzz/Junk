@@ -32,7 +32,7 @@ typedef struct {
 
 // =============== SWAPCHAIN
 // ===============
-typedef struct {
+typedef struct vk_swapchain_t {
     VkImage *images;
     VkImageView *img_views;
     VkFramebuffer *framebuffer;
@@ -53,6 +53,24 @@ typedef struct {
     vk_image_t depth_attach;
 } vk_swapchain_t;
 
+// =============== RENDERPASS
+// ===============
+typedef struct {
+    VkRenderPass handle;
+    f32 depth;
+    u32 stencil;
+    u8 clear_flag;
+    b8 prev_pass;
+    b8 next_pass;
+    VkClearColorValue clear_color;
+} vk_renderpass_t;
+
+// =============== COMMAND BUFFER & BUFFER
+// ===============
+typedef struct {
+    VkCommandBuffer handle;
+} vk_cmdbuffer_t;
+
 // =============== CORE
 // ===============
 
@@ -71,7 +89,7 @@ typedef enum {
     RDR_TAG_COUNT
 } vk_memtag_t;
 
-typedef struct {
+typedef struct vk_core_t {
 #if JNK_DEBUG
     VkDebugUtilsMessengerEXT util_dbg;
 #endif

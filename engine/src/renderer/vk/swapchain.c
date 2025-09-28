@@ -258,3 +258,22 @@ void vk_swapchain_kill(vk_swapchain_t *swp, vk_core_t *core) {
         jnk_log_debug(CH_GFX, "vulkan surface kill");
     }
 }
+
+b8 vk_swapchain_reinit(vk_swapchain_t *swp, vk_core_t *core,
+                       jnk_window_t *window) {
+    VkSwapchainKHR old_swapchain = swp->handle;
+
+    if (old_swapchain != VK_NULL_HANDLE) {
+        vk_image_kill(&swp->depth_attach, core, RDR_TAG_DEPTH_TARGET);
+        vk_image_kill(&swp->color_attach, core, RDR_TAG_RENDER_TARGET);
+        destroy_image_views(swp, core);
+    }
+
+    if (!vk_swapchain_init(swp, core, window, old_swapchain)) return false;
+
+    if (old_swapchain != VK_NULL_HANDLE) {
+        jnk.vkDestroySwapchainKHR(core->logic_dvc, old_swapchain, core->alloc);
+    }
+
+    return true;
+}

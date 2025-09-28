@@ -12,6 +12,8 @@ b8 engine_init(struct user_entry_t *entry);
 
 b8 engine_run(void);
 
+void engine_get_framebuff_size(u32 *width, u32 *height);
+
 jnk_window_config_t *engine_get_window_config(void);
 jnk_renderer_config_t *engine_get_render_config(void);
 

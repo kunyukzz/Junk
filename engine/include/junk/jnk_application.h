@@ -30,6 +30,7 @@ struct user_entry_t {
     b8 (*init)(user_entry_t *user);
     b8 (*update)(user_entry_t *user, f32 delta_time);
     b8 (*render)(user_entry_t *user, f32 delta_time);
+    void (*resize)(user_entry_t *user, u32 width, u32 height);
     void (*kill)(user_entry_t *user);
 
     u64 memory_req;

@@ -12,5 +12,8 @@ b8 vk_swapchain_init(vk_swapchain_t *swp, vk_core_t *core, jnk_window_t *window,
 
 void vk_swapchain_kill(vk_swapchain_t *swp, vk_core_t *core);
 
+b8 vk_swapchain_reinit(vk_swapchain_t *swp, vk_core_t *core,
+                       jnk_window_t *window);
+
 JNK_EXTERN_C_END
 #endif // JUNK_VULKAN_SWAPCHAIN_H

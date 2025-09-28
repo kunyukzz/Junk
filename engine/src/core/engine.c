@@ -13,7 +13,6 @@
 #include "junk/jnk_application.h"
 
 #include <string.h>
-#include <stdio.h>
 
 typedef struct {
     u64 memory_req;
@@ -38,6 +37,9 @@ struct jnk_engine_context_t {
     f64 last_time;
     b8 is_running;
     b8 is_suspend;
+
+    u32 width;
+    u32 height;
 };
 
 static jnk_engine_context_t *g_engine = {};
@@ -223,7 +225,10 @@ b8 engine_run(void) {
                 break;
             }
 
-            // TODO: renderer draw
+            re_bundle_t bundle = {};
+            bundle.delta = delta;
+
+            renderer_system_draw(&bundle);
 
             f64 next_frame_time = frame_time_start + target_frame_seconds;
             f64 frame_time_end = platform_get_abs_time();
@@ -267,8 +272,14 @@ b8 engine_run(void) {
     return true;
 }
 
+void engine_get_framebuff_size(u32 *width, u32 *height) {
+    *width = g_engine->width;
+    *height = g_engine->height;
+}
+
 b8 jnk_engine_start(user_entry_t *entry) {
-    if (!entry->init || !entry->update || !entry->render || !entry->kill) {
+    if (!entry->init || !entry->update || !entry->render || !entry->resize ||
+        !entry->kill) {
         jnk_log_fatal(CH_CORE, "Missing required function pointers in user");
         return false;
     }
@@ -338,39 +349,27 @@ b8 engine_on_event(u32 type, jnk_event_t *ev, void *sender, void *recipient) {
 b8 engine_on_resize(u32 type, jnk_event_t *ev, void *sender, void *recipient) {
     (void)sender;
     (void)recipient;
-    if (type != JNK_RESIZE) return false;
+    if (type == JNK_RESIZE) {
+        u32 w = ev->data.resize.width;
+        u32 h = ev->data.resize.height;
 
-    static u64 last_resize_time = 0;
-    static u16 last_width = 0;
-    static u16 last_height = 0;
+        if (w != g_engine->width || h != g_engine->height) {
+            g_engine->width = w;
+            g_engine->height = h;
 
-    u32 w = ev->data.resize.width;
-    u32 h = ev->data.resize.height;
-
-    u64 now = (u64)(platform_get_abs_time() * 1000.0);
-    if ((w == last_width && h == last_height) &&
-        (now - last_resize_time < 200)) {
-        return false;
+            if (w == 0 || h == 0) {
+                g_engine->is_suspend = true;
+                return true;
+            } else {
+                if (g_engine->is_suspend) {
+                    g_engine->is_suspend = false;
+                }
+                g_engine->entry->resize(g_engine->entry, w, h);
+                renderer_system_resize(w, h);
+            }
+        }
     }
-
-    last_resize_time = now;
-    last_width = (u16)w;
-    last_height = (u16)h;
-
-    if (w == g_engine->entry->engine_config.window.width &&
-        h == g_engine->entry->engine_config.window.height) {
-        return false;
-    }
-    g_engine->entry->engine_config.window.width = w;
-    g_engine->entry->engine_config.window.height = h;
-
-    if (w == 0 || h == 0) {
-        g_engine->is_suspend = true;
-    } else {
-        g_engine->is_suspend = false;
-        // renderer_system_resize(w, h);
-    }
-    return true;
+    return false;
 }
 
 jnk_window_config_t *engine_get_window_config(void) {
