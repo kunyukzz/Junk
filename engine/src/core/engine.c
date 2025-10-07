@@ -11,6 +11,7 @@
 #include "junk/jnk_memory.h"
 #include "junk/jnk_log.h"
 #include "junk/jnk_application.h"
+#include "junk/jnk_camera.h"
 
 #include <string.h>
 
@@ -25,6 +26,7 @@ typedef struct {
     state input;
     state window;
     state render;
+    state camera;
 } subs;
 
 struct jnk_engine_context_t {
@@ -105,19 +107,21 @@ static b8 engine_pre_init(struct user_entry_t *entry) {
     input_system_init(&g_engine->subs.input.memory_req, JNK_NULL);
     window_system_init(&g_engine->subs.window.memory_req, JNK_NULL);
     renderer_system_init(&g_engine->subs.render.memory_req, JNK_NULL);
+    camera_system_init(&g_engine->subs.camera.memory_req, JNK_NULL);
 
     // TODO: this is ugly as hell
-    u16 count = 6;
+    const u16 count = 7;
     u64 reqs[count];
-    const char *labels[6] = {"filesys", "event",    "input",
-                             "window",  "renderer", "entry"};
+    const char *labels[7] = {"filesys",  "event",  "input", "window",
+                             "renderer", "camera", "entry"};
 
     reqs[0] = g_engine->subs.filesystem.memory_req;
     reqs[1] = g_engine->subs.event.memory_req;
     reqs[2] = g_engine->subs.input.memory_req;
     reqs[3] = g_engine->subs.window.memory_req;
     reqs[4] = g_engine->subs.render.memory_req;
-    reqs[5] = entry->memory_req;
+    reqs[5] = g_engine->subs.camera.memory_req;
+    reqs[6] = entry->memory_req;
 
     u64 total_memory = arena_calc_req(labels, reqs, count);
 
@@ -160,15 +164,15 @@ b8 engine_init(struct user_entry_t *entry) {
 
     g_engine->subs.window.state =
         arena_alloc(arena, g_engine->subs.window.memory_req);
-    /*
-    ((window_state_t *)g_engine->subs.window.state)->config =
-        &g_engine->entry->engine_config.window;
-        */
     window_system_init(JNK_NULL, g_engine->subs.window.state);
 
     g_engine->subs.render.state =
         arena_alloc(arena, g_engine->subs.render.memory_req);
     renderer_system_init(JNK_NULL, g_engine->subs.render.state);
+
+    g_engine->subs.camera.state =
+        arena_alloc(arena, g_engine->subs.camera.memory_req);
+    camera_system_init(JNK_NULL, g_engine->subs.camera.state);
 
     if (!g_engine->entry->init(g_engine->entry)) {
         return false;
@@ -253,6 +257,7 @@ b8 engine_run(void) {
     event_unreg(JNK_KEY_PRESS, engine_on_input, JNK_NULL);
     event_unreg(JNK_KEY_RELEASE, engine_on_input, JNK_NULL);
 
+    camera_system_kill(g_engine->subs.camera.state);
     renderer_system_kill(g_engine->subs.render.state);
     window_system_kill(g_engine->subs.window.state);
     input_system_kill(g_engine->subs.input.state);
@@ -278,8 +283,7 @@ void engine_get_framebuff_size(u32 *width, u32 *height) {
 }
 
 b8 jnk_engine_start(user_entry_t *entry) {
-    if (!entry->init || !entry->update || !entry->render || !entry->resize ||
-        !entry->kill) {
+    if (!entry->init || !entry->update || !entry->render || !entry->kill) {
         jnk_log_fatal(CH_CORE, "Missing required function pointers in user");
         return false;
     }
@@ -364,7 +368,7 @@ b8 engine_on_resize(u32 type, jnk_event_t *ev, void *sender, void *recipient) {
                 if (g_engine->is_suspend) {
                     g_engine->is_suspend = false;
                 }
-                g_engine->entry->resize(g_engine->entry, w, h);
+                // g_engine->entry->resize(g_engine->entry, w, h);
                 renderer_system_resize(w, h);
             }
         }
